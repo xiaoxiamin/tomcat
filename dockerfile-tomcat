@@ -1,0 +1,47 @@
+From tomcat:7.0.85-jre7
+MAINTAINER op@xiamin.xin
+#eg:the dockerfile build tag is tomcat:v1
+
+ENV TZ Asia/Shanghai
+
+#增加163debian源
+RUN { \
+echo 'deb http://59.111.0.251/debian/ jessie main non-free contrib'; \
+echo 'deb http://59.111.0.251/debian/ jessie-updates main non-free contrib'; \
+echo 'deb http://59.111.0.251/debian/ jessie-backports main non-free contrib'; \
+echo 'deb-src http://59.111.0.251/debian/ jessie main non-free contrib'; \
+echo 'deb-src http://59.111.0.251/debian/ jessie-updates main non-free contrib'; \
+echo 'deb-src http://59.111.0.251/debian/ jessie-backports main non-free contrib'; \
+echo 'deb http://59.111.0.251/debian-security/ jessie/updates main non-free contrib'; \
+echo 'deb-src http://59.111.0.251/debian-security/ jessie/updates main non-free contrib'; \
+} > /etc/apt/sources.list
+
+#安装日志切割服务cronolog
+RUN buildDeps='wget make gcc'\
+    && apt-get update && apt-get install -y ${buildDeps} \
+    && wget http://down1.chinaunix.net/distfiles/cronolog-1.6.2.tar.gz -P /opt \
+    && cd /opt &&  tar zxvf cronolog-1.6.2.tar.gz \
+    && cd /opt/cronolog-1.6.2 \
+    && ./configure \
+    && make && make install \
+    && rm -rf /opt/cronolog-1.6.2.tar.gz /opt/cronolog-1.6.2 \
+    && apt-get remove -y ${buildDeps}
+
+COPY cronolog /usr/local/sbin/cronolog
+
+#用户权限配置
+RUN groupadd  -g 1002 docker \
+    && useradd -u 1002 -m -g docker -d /home/dcos dcos \
+    && mkdir /app && chown -R dcos:docker /app /usr/local/tomcat
+
+ADD lib.tar.gz /usr/local/tomcat/
+COPY entrypoint.sh /home/dcos/entrypoint.sh
+CMD  /home/dcos/entrypoint.sh
+
+#rebiuld dockerfile:
+#FROM tomcat:v1
+#COPY server.xml /usr/local/tomcat/conf/server.xml
+#COPY context.xml /usr/local/tomcat/conf/context.xml 
+#RUN rm -rf /app/app/*
+#COPY SfzBackControl.war /app/app/
+
