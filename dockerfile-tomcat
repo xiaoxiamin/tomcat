@@ -29,12 +29,20 @@ RUN buildDeps='wget make gcc'\
 
 COPY cronolog /usr/local/sbin/cronolog
 
+#icloud日志展示配置
+ADD bin.tar /app/
+
+#tomcat配置
+ENV TOMCAT_HOME /usr/local/tomcat
+RUN sed -i '72i\               maxHttpHeaderSize="102400"' $TOMCAT_HOME/conf/server.xml \
+&& sed -i '/appBase/ s/\(appBase=".*"\)$/appBase="\/app\/app"/' $TOMCAT_HOME/conf/server.xml
+ADD lib.tar.gz /usr/local/tomcat/
+
 #用户权限配置
 RUN groupadd  -g 1002 docker \
     && useradd -u 1002 -m -g docker -d /home/dcos dcos \
-    && mkdir /app && chown -R dcos:docker /app /usr/local/tomcat
+    && chown -R dcos:docker /app /usr/local/tomcat
 
-ADD lib.tar.gz /usr/local/tomcat/
 COPY entrypoint.sh /home/dcos/entrypoint.sh
 CMD  /home/dcos/entrypoint.sh
 
@@ -44,4 +52,5 @@ CMD  /home/dcos/entrypoint.sh
 #COPY context.xml /usr/local/tomcat/conf/context.xml 
 #RUN rm -rf /app/app/*
 #COPY SfzBackControl.war /app/app/
+#chown dcos:docker /app -R
 
